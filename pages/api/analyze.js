@@ -1,32 +1,34 @@
 export default async function handler(req, res) {
   const { wallet } = req.body;
 
+  const ALCHEMY_KEY = process.env.ALCHEMY_API_KEY;
+
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch(`https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.CLAUDE_API_KEY
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "claude-3-sonnet-20240229",
-        max_tokens: 200,
-        messages: [
-          {
-            role: "user",
-            content: `Analyze this crypto wallet briefly: ${wallet}`
-          }
-        ]
+        jsonrpc: "2.0",
+        method: "eth_getBalance",
+        params: [wallet, "latest"],
+        id: 1
       })
     });
 
     const data = await response.json();
 
+    const balanceWei = parseInt(data.result, 16);
+    const balanceEth = balanceWei / 1e18;
+
     res.status(200).json({
-      result: data.content?.[0]?.text || "No response"
+      result: `Wallet ${wallet} holds approximately ${balanceEth.toFixed(4)} ETH`
     });
 
   } catch (error) {
-    res.status(500).json({ result: "Error analyzing wallet" });
+    res.status(500).json({
+      result: "Error fetching wallet data"
+    });
   }
 }
