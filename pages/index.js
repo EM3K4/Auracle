@@ -2,55 +2,48 @@ import { useState } from "react";
 
 export default function Home() {
   const [wallet, setWallet] = useState("");
-  const [result, setResult] = useState("");
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const analyze = async () => {
-    if (!wallet) return;
-
     setLoading(true);
-    setResult("");
 
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ wallet })
+        body: JSON.stringify({ wallet }),
       });
 
       const data = await res.json();
-      setResult(data.result);
+      setBalance(data.balance);
     } catch (err) {
-      setResult("Error fetching data");
+      console.error(err);
     }
 
     setLoading(false);
   };
 
   return (
-    <div style={{ padding: 40, fontFamily: "sans-serif" }}>
+    <div style={{ padding: 40, textAlign: "center" }}>
       <h1>Auracle 🔮</h1>
 
       <input
+        placeholder="Enter wallet address"
         value={wallet}
         onChange={(e) => setWallet(e.target.value)}
-        placeholder="Enter wallet address"
         style={{ padding: 10, width: 300 }}
       />
 
-      <button onClick={analyze} style={{ marginLeft: 10 }}>
-        Analyze
-      </button>
+      <br /><br />
+
+      <button onClick={analyze}>Analyze</button>
 
       {loading && <p>Analyzing...</p>}
 
-      {result && (
-        <div style={{ marginTop: 20 }}>
-          <p>{result}</p>
-        </div>
-      )}
+      {balance && <p>Balance: {balance} ETH</p>}
     </div>
   );
-               }
+      }
