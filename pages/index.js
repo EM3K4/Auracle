@@ -1,129 +1,121 @@
 import { useState } from "react";
 
 export default function Home() {
+  const [wallet, setWallet] = useState("");
+  const [balance, setBalance] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const analyze = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ wallet })
+      });
+
+      const data = await res.json();
+      setBalance(data.balance);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
   return (
     <div style={styles.container}>
-      
-      {/* NAVBAR */}
-      <div style={styles.navbar}>
-        <h2 style={styles.logo}>Auracle 🔮</h2>
+      <div style={styles.nav}>
+        <h2>Auracle 🔮</h2>
         <div>
-          <button style={styles.navBtn}>Sign In</button>
+          <button style={styles.navBtn}>Login</button>
           <button style={styles.navBtn}>Sign Up</button>
         </div>
       </div>
 
-      {/* HERO SECTION */}
       <div style={styles.hero}>
-        <h1 style={styles.title}>
-          Decode Wallet Intelligence
-        </h1>
+        <h1 style={styles.title}>Predict Wallet Intelligence</h1>
         <p style={styles.subtitle}>
-          Track wallets. Spot alpha. Move before the market.
+          Analyze wallets. Track behavior. Find alpha.
         </p>
 
-        <button style={styles.cta}>
-          Launch App
-        </button>
+        <div style={styles.inputBox}>
+          <input
+            placeholder="Enter wallet address..."
+            value={wallet}
+            onChange={(e) => setWallet(e.target.value)}
+            style={styles.input}
+          />
+          <button onClick={analyze} style={styles.button}>
+            Analyze
+          </button>
+        </div>
+
+        {loading && <p>Analyzing...</p>}
+        {balance && <p>Balance: {balance}</p>}
       </div>
 
-      {/* FEATURES */}
-      <div style={styles.section}>
-        <h2>What is Auracle?</h2>
-        <p>
-          Auracle analyzes blockchain wallets to reveal hidden insights,
-          smart money moves, and alpha opportunities before everyone else.
-        </p>
-      </div>
-
-      <div style={styles.section}>
-        <h2>Features</h2>
-        <ul>
-          <li>Wallet tracking</li>
-          <li>Balance insights</li>
-          <li>Smart money detection</li>
-          <li>Real-time analytics</li>
-        </ul>
-      </div>
-
-      {/* CONTACT */}
-      <div style={styles.section}>
-        <h2>Contact</h2>
-        <p>Email: auracle@proton.me</p>
-        <p>Twitter: @0xEM3KA</p>
-        <p>Discord: Coming soon</p>
-      </div>
-
-      {/* FOOTER */}
       <div style={styles.footer}>
-        © 2026 Auracle. All rights reserved.
+        <p>© 2026 Auracle. All rights reserved.</p>
       </div>
-
     </div>
   );
 }
 
 const styles = {
   container: {
-    background: "linear-gradient(135deg, #000000, #0f0f0f, #0aff9d)",
+    background: "linear-gradient(135deg, #000000, #0f0f0f, #39ff14)",
     color: "white",
     minHeight: "100vh",
-    fontFamily: "sans-serif",
+    fontFamily: "Arial",
   },
-
-  navbar: {
+  nav: {
     display: "flex",
     justifyContent: "space-between",
-    padding: "20px 40px",
-    backdropFilter: "blur(10px)",
+    padding: "20px",
   },
-
-  logo: {
-    color: "#0aff9d",
-  },
-
   navBtn: {
-    marginLeft: 10,
+    marginLeft: "10px",
     padding: "8px 16px",
     background: "transparent",
-    border: "1px solid #0aff9d",
-    color: "#0aff9d",
+    border: "1px solid #39ff14",
+    color: "#39ff14",
     cursor: "pointer",
   },
-
   hero: {
     textAlign: "center",
-    marginTop: 100,
+    marginTop: "100px",
   },
-
   title: {
-    fontSize: 48,
-    color: "#0aff9d",
+    fontSize: "48px",
+    color: "#39ff14",
   },
-
   subtitle: {
-    fontSize: 18,
-    opacity: 0.8,
+    fontSize: "18px",
+    marginBottom: "30px",
   },
-
-  cta: {
-    marginTop: 20,
-    padding: "12px 24px",
-    background: "#0aff9d",
-    color: "black",
+  inputBox: {
+    display: "flex",
+    justifyContent: "center",
+  },
+  input: {
+    padding: "12px",
+    width: "300px",
+    border: "none",
+    outline: "none",
+  },
+  button: {
+    padding: "12px",
+    background: "#39ff14",
     border: "none",
     cursor: "pointer",
   },
-
-  section: {
-    marginTop: 100,
-    padding: "0 40px",
-  },
-
   footer: {
-    marginTop: 100,
+    position: "absolute",
+    bottom: "10px",
+    width: "100%",
     textAlign: "center",
-    padding: 20,
-    opacity: 0.6,
+    fontSize: "12px",
   },
 };
