@@ -1,413 +1,399 @@
 import { useState, useEffect, useRef } from "react";
 
-// Animated particle ring for the logo
-function AuracleLogo({ size = 80 }) {
+/* ─── ANIMATED GRID + PARTICLE BACKGROUND ─── */
+function Background() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const particles = Array.from({ length: 60 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 1.5 + 0.3,
+      alpha: Math.random() * 0.5 + 0.1,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = "rgba(137,243,54,0.04)";
+      ctx.lineWidth = 1;
+      const gs = 80;
+      for (let x = 0; x < canvas.width; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+      for (let y = 0; y < canvas.height; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+
+      // Particles
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(137,243,54,${p.alpha})`;
+        ctx.fill();
+      });
+
+      // Connect nearby particles
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(137,243,54,${0.06 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />;
+}
+
+/* ─── SCROLL FADE HOOK ─── */
+function useFadeIn(threshold = 0.15) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, visible];
+}
+
+function FadeIn({ children, delay = "0s", style = {} }) {
+  const [ref, visible] = useFadeIn();
   return (
-    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
-      {/* Outer rotating ring */}
-      <div style={{
-        position: "absolute", inset: 0, borderRadius: "50%",
-        border: "1.5px solid transparent",
-        background: "linear-gradient(#0a0a0f, #0a0a0f) padding-box, linear-gradient(135deg, #d4af37, #fff8dc, #d4af37) border-box",
-        animation: "spinRing 8s linear infinite",
-      }} />
-      {/* Inner glow ring */}
-      <div style={{
-        position: "absolute", inset: 6, borderRadius: "50%",
-        border: "1px solid rgba(212, 175, 55, 0.25)",
-        animation: "spinRing 5s linear infinite reverse",
-      }} />
-      {/* Eye symbol */}
-      <div style={{
-        position: "absolute", inset: 0, display: "flex",
-        alignItems: "center", justifyContent: "center",
+    <div ref={ref} style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0)" : "translateY(28px)",
+      transition: `opacity 0.7s ease ${delay}, transform 0.7s ease ${delay}`,
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+/* ─── LOGO ─── */
+function Logo({ size = 32 }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="18" stroke="#89F336" strokeWidth="1.5" opacity="0.4" />
+        <circle cx="20" cy="20" r="12" stroke="#89F336" strokeWidth="1" opacity="0.6" />
+        <ellipse cx="20" cy="20" rx="18" ry="7" stroke="#89F336" strokeWidth="1" opacity="0.3" />
+        <circle cx="20" cy="20" r="4" fill="#89F336" opacity="0.9" />
+        <circle cx="21.5" cy="18.5" r="1.2" fill="white" opacity="0.7" />
+      </svg>
+      <span style={{
+        fontSize: size * 0.6, fontWeight: 800, letterSpacing: "-0.01em",
+        fontFamily: "'Syne', sans-serif", color: "#f0f4f0",
       }}>
-        <svg width={size * 0.52} height={size * 0.35} viewBox="0 0 52 35" fill="none">
-          {/* Eye outline */}
-          <path d="M1 17.5C1 17.5 11 1 26 1C41 1 51 17.5 51 17.5C51 17.5 41 34 26 34C11 34 1 17.5 1 17.5Z"
-            stroke="#d4af37" strokeWidth="1.5" fill="none" opacity="0.9" />
-          {/* Iris */}
-          <circle cx="26" cy="17.5" r="8" stroke="#d4af37" strokeWidth="1.2" fill="rgba(212,175,55,0.08)" />
-          {/* Pupil */}
-          <circle cx="26" cy="17.5" r="3.5" fill="#d4af37" opacity="0.9" />
-          {/* Glint */}
-          <circle cx="28" cy="15.5" r="1" fill="white" opacity="0.8" />
-        </svg>
+        Aur<span style={{ color: "#89F336" }}>acle</span>
+      </span>
+    </div>
+  );
+}
+
+/* ─── LIVE TICKER ─── */
+const TICKERS = [
+  { label: "ETH Whale Alert", sub: "5,200 ETH → Binance", delta: "-4.1%", up: false },
+  { label: "ARB Smart Money", sub: "Accumulating quietly", delta: "+18.3%", up: true },
+  { label: "PEPE Trend", sub: "Volume spike detected", delta: "+41%", up: true },
+  { label: "BTC Wallet #9f2a", sub: "New 500 BTC position", delta: "+2.8%", up: true },
+  { label: "SOL Sell-off", sub: "3 whales exiting", delta: "-9.2%", up: false },
+];
+
+function Ticker() {
+  return (
+    <div style={{ overflow: "hidden", borderTop: "1px solid rgba(137,243,54,0.08)", borderBottom: "1px solid rgba(137,243,54,0.08)", padding: "10px 0", background: "rgba(137,243,54,0.02)" }}>
+      <div style={{ display: "flex", gap: 48, animation: "scrollTicker 22s linear infinite", width: "max-content" }}>
+        {[...TICKERS, ...TICKERS].map((t, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, whiteSpace: "nowrap" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.up ? "#89F336" : "#f87171", display: "inline-block" }} />
+            <span style={{ fontSize: 12, color: "#94a3b8", fontFamily: "'DM Mono', monospace" }}>{t.label}</span>
+            <span style={{ fontSize: 12, color: "#475569" }}>·</span>
+            <span style={{ fontSize: 12, color: "#64748b" }}>{t.sub}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: t.up ? "#89F336" : "#f87171", fontFamily: "'DM Mono', monospace" }}>{t.delta}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// Floating orb background
-function OrbBackground() {
+/* ─── FEATURE CARD ─── */
+function FeatureCard({ icon, title, desc, delay }) {
+  const [hovered, setHovered] = useState(false);
   return (
-    <div style={{ position: "fixed", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
-      {/* Main golden orb */}
-      <div style={{
-        position: "absolute", top: "15%", left: "50%", transform: "translateX(-50%)",
-        width: 500, height: 500, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(212,175,55,0.07) 0%, rgba(212,175,55,0.02) 50%, transparent 70%)",
-        animation: "breathe 6s ease-in-out infinite",
-      }} />
-      {/* Left accent */}
-      <div style={{
-        position: "absolute", top: "40%", left: "-10%",
-        width: 350, height: 350, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(180,120,30,0.05) 0%, transparent 70%)",
-        animation: "drift 9s ease-in-out infinite",
-      }} />
-      {/* Right accent */}
-      <div style={{
-        position: "absolute", top: "30%", right: "-8%",
-        width: 300, height: 300, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(212,175,55,0.04) 0%, transparent 70%)",
-        animation: "drift 7s ease-in-out infinite reverse",
-      }} />
-      {/* Grid lines */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: `
-          linear-gradient(rgba(212,175,55,0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(212,175,55,0.03) 1px, transparent 1px)
-        `,
-        backgroundSize: "80px 80px",
-        maskImage: "radial-gradient(ellipse 80% 60% at 50% 30%, black 0%, transparent 100%)",
-      }} />
-      {/* Grain texture overlay */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E\")",
-        opacity: 0.4,
-      }} />
-    </div>
+    <FadeIn delay={delay}>
+      <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          padding: "28px 26px",
+          borderRadius: 16,
+          border: `1px solid ${hovered ? "rgba(137,243,54,0.3)" : "rgba(255,255,255,0.06)"}`,
+          background: hovered ? "rgba(137,243,54,0.04)" : "rgba(255,255,255,0.02)",
+          backdropFilter: "blur(12px)",
+          transition: "all 0.3s ease",
+          boxShadow: hovered ? "0 0 30px rgba(137,243,54,0.06)" : "none",
+          cursor: "default",
+        }}
+      >
+        <div style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: "rgba(137,243,54,0.08)",
+          border: "1px solid rgba(137,243,54,0.15)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 20, marginBottom: 18,
+          transition: "background 0.3s",
+          ...(hovered ? { background: "rgba(137,243,54,0.15)" } : {}),
+        }}>{icon}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f4f0", marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>{title}</div>
+        <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.65 }}>{desc}</div>
+      </div>
+    </FadeIn>
   );
 }
 
-// Stat card
-function StatCard({ number, label, delay }) {
+/* ─── STEP CARD ─── */
+function StepCard({ number, title, desc, delay }) {
   return (
-    <div style={{
-      textAlign: "center", padding: "20px 16px",
-      animation: `fadeUp 0.7s ease both`,
-      animationDelay: delay,
-    }}>
+    <FadeIn delay={delay}>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+          border: "1px solid rgba(137,243,54,0.4)",
+          background: "rgba(137,243,54,0.06)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 700, color: "#89F336",
+        }}>{number}</div>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f4f0", marginBottom: 6, fontFamily: "'Syne', sans-serif" }}>{title}</div>
+          <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>{desc}</div>
+        </div>
+      </div>
+    </FadeIn>
+  );
+}
+
+/* ─── STAT ─── */
+function Stat({ value, label, delay }) {
+  return (
+    <FadeIn delay={delay} style={{ textAlign: "center" }}>
       <div style={{
-        fontSize: 32, fontWeight: 800, fontFamily: "'Cormorant Garamond', Georgia, serif",
-        color: "#d4af37", letterSpacing: "-0.02em", lineHeight: 1,
-      }}>{number}</div>
-      <div style={{ fontSize: 12, color: "#5a5340", marginTop: 6, letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
-    </div>
+        fontSize: "clamp(36px, 5vw, 52px)", fontWeight: 800,
+        fontFamily: "'Syne', sans-serif", color: "#89F336",
+        letterSpacing: "-0.03em", lineHeight: 1,
+      }}>{value}</div>
+      <div style={{ fontSize: 13, color: "#475569", marginTop: 8, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
+    </FadeIn>
   );
 }
 
-// Feature pill
-function FeaturePill({ icon, text, delay }) {
+/* ─── BUTTONS ─── */
+function PrimaryBtn({ children, onClick }) {
+  const [hov, setHov] = useState(false);
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      padding: "10px 18px", borderRadius: 999,
-      border: "1px solid rgba(212,175,55,0.15)",
-      background: "rgba(212,175,55,0.04)",
-      fontSize: 13, color: "#a89060",
-      animation: `fadeUp 0.6s ease both`,
-      animationDelay: delay,
-      backdropFilter: "blur(8px)",
-    }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span>{text}</span>
-    </div>
+    <button onClick={onClick}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        background: hov ? "#9dff4a" : "#89F336",
+        color: "#020617", border: "none", borderRadius: 10,
+        padding: "14px 28px", fontSize: 15, fontWeight: 800,
+        cursor: "pointer", fontFamily: "'Syne', sans-serif",
+        letterSpacing: "0.01em",
+        boxShadow: hov ? "0 0 30px rgba(137,243,54,0.45), 0 0 60px rgba(137,243,54,0.15)" : "0 0 20px rgba(137,243,54,0.2)",
+        transition: "all 0.2s ease",
+        transform: hov ? "translateY(-1px)" : "none",
+      }}>{children}</button>
   );
 }
 
-export default function AuracleLanding() {
+function OutlineBtn({ children, onClick }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        background: "transparent",
+        color: hov ? "#89F336" : "#94a3b8",
+        border: `1px solid ${hov ? "rgba(137,243,54,0.5)" : "rgba(255,255,255,0.12)"}`,
+        borderRadius: 10, padding: "14px 28px", fontSize: 15, fontWeight: 600,
+        cursor: "pointer", fontFamily: "'Syne', sans-serif",
+        transition: "all 0.2s ease",
+      }}>{children}</button>
+  );
+}
+
+/* ─── EMAIL CAPTURE ─── */
+function EmailCapture() {
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [done, setDone] = useState(false);
   const [focused, setFocused] = useState(false);
+  return done ? (
+    <div style={{
+      padding: "16px 28px", borderRadius: 12,
+      border: "1px solid rgba(137,243,54,0.3)",
+      background: "rgba(137,243,54,0.06)",
+      color: "#89F336", fontWeight: 700, fontSize: 15,
+      fontFamily: "'Syne', sans-serif", textAlign: "center",
+    }}>✓ You're on the list. We'll reach out soon.</div>
+  ) : (
+    <div style={{ display: "flex", gap: 0, maxWidth: 460, width: "100%", borderRadius: 10, overflow: "hidden", border: `1px solid ${focused ? "rgba(137,243,54,0.4)" : "rgba(255,255,255,0.08)"}`, transition: "border-color 0.2s", boxShadow: focused ? "0 0 0 3px rgba(137,243,54,0.06)" : "none" }}>
+      <input
+        type="email" placeholder="Enter your email"
+        value={email} onChange={e => setEmail(e.target.value)}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        onKeyDown={e => e.key === "Enter" && email && setDone(true)}
+        style={{ flex: 1, background: "rgba(2,6,23,0.8)", border: "none", padding: "14px 18px", color: "#f0f4f0", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }}
+      />
+      <button onClick={() => email && setDone(true)} style={{ background: "#89F336", color: "#020617", border: "none", padding: "14px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
+        Get Access →
+      </button>
+    </div>
+  );
+}
 
-  const handleSignup = () => {
-    if (email.trim()) {
-      setSubmitted(true);
-    }
-  };
+/* ─── MAIN EXPORT ─── */
+export default function AuracleLanding() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=Jost:wght@300;400;500;600&display=swap');
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body { background: #0a0a0f; }
-
-        @keyframes spinRing {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes breathe {
-          0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
-          50% { transform: translateX(-50%) scale(1.08); opacity: 0.7; }
-        }
-        @keyframes drift {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-30px); }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes pulseGold {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(212,175,55,0.4); }
-          50% { box-shadow: 0 0 0 12px rgba(212,175,55,0); }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { background: #020617; color: #f0f4f0; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #020617; } ::-webkit-scrollbar-thumb { background: rgba(137,243,54,0.2); border-radius: 99px; }
+        @keyframes scrollTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes pulseGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(137,243,54,0.4); } 50% { box-shadow: 0 0 0 10px rgba(137,243,54,0); } }
+        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        @keyframes glowPulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
       `}</style>
 
-      <OrbBackground />
+      <Background />
 
-      <div style={{
-        position: "relative", zIndex: 1,
-        minHeight: "100vh",
-        background: "transparent",
-        display: "flex", flexDirection: "column",
-        fontFamily: "'Jost', sans-serif",
-        color: "#f0e8d0",
+      {/* ── NAV ── */}
+      <nav style={{
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        padding: "0 32px",
+        height: 68,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: scrolled ? "rgba(2,6,23,0.9)" : "transparent",
+        backdropFilter: scrolled ? "blur(20px)" : "none",
+        borderBottom: scrolled ? "1px solid rgba(137,243,54,0.08)" : "1px solid transparent",
+        transition: "all 0.3s ease",
       }}>
+        <Logo />
+        <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
+          {["Features", "How It Works", "Stats"].map(item => (
+            <button key={item} onClick={() => scrollTo(item.toLowerCase().replace(/ /g, "-"))}
+              style={{ background: "none", border: "none", color: "#64748b", fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, transition: "color 0.2s" }}
+              onMouseEnter={e => e.target.style.color = "#f0f4f0"}
+              onMouseLeave={e => e.target.style.color = "#64748b"}
+            >{item}</button>
+          ))}
+          <PrimaryBtn onClick={() => scrollTo("cta")}>Get Early Access</PrimaryBtn>
+        </div>
+      </nav>
 
-        {/* Nav */}
-        <nav style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "24px 40px",
-          borderBottom: "1px solid rgba(212,175,55,0.08)",
-          animation: "fadeIn 1s ease both",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 28, height: 28, position: "relative" }}>
-              <AuracleLogo size={28} />
-            </div>
-            <span style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 20, fontWeight: 700,
-              color: "#d4af37", letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}>Auracle</span>
-          </div>
-          <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-            {["About", "Features", "Pricing"].map(item => (
-              <a key={item} href="#" style={{
-                color: "#5a5340", fontSize: 13, textDecoration: "none",
-                letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500,
-                transition: "color 0.2s",
-              }}
-                onMouseEnter={e => e.target.style.color = "#d4af37"}
-                onMouseLeave={e => e.target.style.color = "#5a5340"}
-              >{item}</a>
-            ))}
-            <button
-              onClick={() => document.getElementById('signup').scrollIntoView({ behavior: 'smooth' })}
-              style={{
-                background: "transparent", border: "1px solid rgba(212,175,55,0.4)",
-                color: "#d4af37", padding: "8px 20px", borderRadius: 4,
-                fontSize: 12, fontWeight: 600, cursor: "pointer",
-                letterSpacing: "0.1em", textTransform: "uppercase",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={e => { e.target.style.background = "rgba(212,175,55,0.1)"; e.target.style.borderColor = "#d4af37"; }}
-              onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.borderColor = "rgba(212,175,55,0.4)"; }}
-            >Early Access</button>
-          </div>
-        </nav>
+      {/* ── HERO ── */}
+      <section style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 24px 60px", textAlign: "center" }}>
 
-        {/* Hero */}
-        <main style={{
-          flex: 1, display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          textAlign: "center", padding: "60px 24px 40px",
-        }}>
+        {/* Glow orb behind headline */}
+        <div style={{ position: "absolute", top: "35%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 300, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(137,243,54,0.07) 0%, transparent 70%)", pointerEvents: "none", animation: "glowPulse 4s ease-in-out infinite" }} />
 
-          {/* Badge */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "6px 16px", borderRadius: 999,
-            border: "1px solid rgba(212,175,55,0.2)",
-            background: "rgba(212,175,55,0.05)",
-            fontSize: 11, color: "#a89060", letterSpacing: "0.15em",
-            textTransform: "uppercase", fontWeight: 600, marginBottom: 40,
-            animation: "fadeUp 0.6s ease 0.1s both",
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#d4af37", display: "inline-block", animation: "pulseGold 2s ease infinite" }} />
-            Now in Private Beta
-          </div>
-
-          {/* Logo Mark */}
-          <div style={{ marginBottom: 36, animation: "fadeUp 0.8s ease 0.2s both" }}>
-            <AuracleLogo size={96} />
-          </div>
-
-          {/* Headline */}
-          <h1 style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: "clamp(48px, 8vw, 88px)",
-            fontWeight: 700,
-            lineHeight: 1.05,
-            letterSpacing: "-0.02em",
-            maxWidth: 800,
-            marginBottom: 8,
-            animation: "fadeUp 0.8s ease 0.3s both",
-          }}>
-            <span style={{ color: "#f0e8d0" }}>The Market</span>
-            <br />
-            <span style={{
-              background: "linear-gradient(90deg, #b8941e, #d4af37, #f5d76e, #d4af37, #b8941e)",
-              backgroundSize: "200% auto",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              animation: "shimmer 4s linear infinite",
-            }}>Speaks First.</span>
-          </h1>
-
-          <p style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: "clamp(16px, 2.5vw, 22px)",
-            fontStyle: "italic",
-            color: "#6b5f40",
-            marginBottom: 16,
-            animation: "fadeUp 0.7s ease 0.35s both",
-          }}>You just need to know how to listen.</p>
-
-          {/* Sub-description */}
-          <p style={{
-            fontSize: 15, color: "#4a4030", lineHeight: 1.7,
-            maxWidth: 480, marginBottom: 48,
-            animation: "fadeUp 0.7s ease 0.4s both",
-            fontWeight: 400,
-          }}>
-            Auracle tracks wallets, reads trends, and distills the noise into intelligence —
-            so you always know what's moving before everyone else does.
-          </p>
-
-          {/* Feature Pills */}
-          <div style={{
-            display: "flex", flexWrap: "wrap", gap: 10,
-            justifyContent: "center", marginBottom: 52,
-          }}>
-            <FeaturePill icon="👁️" text="Wallet Intelligence" delay="0.45s" />
-            <FeaturePill icon="⚡" text="Real-time Alerts" delay="0.5s" />
-            <FeaturePill icon="🧠" text="AI Summaries" delay="0.55s" />
-            <FeaturePill icon="📣" text="Auto Content" delay="0.6s" />
-          </div>
-
-          {/* Sign Up Form */}
-          <div id="signup" style={{
-            width: "100%", maxWidth: 460,
-            animation: "fadeUp 0.8s ease 0.65s both",
-          }}>
-            {!submitted ? (
-              <>
-                <div style={{
-                  display: "flex", gap: 0,
-                  border: `1px solid ${focused ? "rgba(212,175,55,0.6)" : "rgba(212,175,55,0.2)"}`,
-                  borderRadius: 8, overflow: "hidden",
-                  background: "rgba(10,10,15,0.8)",
-                  backdropFilter: "blur(12px)",
-                  transition: "border-color 0.2s",
-                  boxShadow: focused ? "0 0 0 3px rgba(212,175,55,0.08)" : "none",
-                }}>
-                  <input
-                    type="email"
-                    placeholder="Enter your email address"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
-                    onKeyDown={e => e.key === "Enter" && handleSignup()}
-                    style={{
-                      flex: 1, background: "transparent", border: "none",
-                      padding: "14px 18px", color: "#f0e8d0", fontSize: 14,
-                      outline: "none", fontFamily: "'Jost', sans-serif",
-                    }}
-                  />
-                  <button
-                    onClick={handleSignup}
-                    style={{
-                      background: "linear-gradient(135deg, #b8941e, #d4af37)",
-                      border: "none", padding: "14px 24px",
-                      color: "#0a0a0f", fontSize: 13, fontWeight: 700,
-                      cursor: "pointer", letterSpacing: "0.08em",
-                      textTransform: "uppercase", fontFamily: "'Jost', sans-serif",
-                      transition: "opacity 0.2s",
-                      whiteSpace: "nowrap",
-                    }}
-                    onMouseEnter={e => e.target.style.opacity = "0.9"}
-                    onMouseLeave={e => e.target.style.opacity = "1"}
-                  >
-                    Get Access →
-                  </button>
-                </div>
-                <p style={{ fontSize: 11, color: "#3a3020", marginTop: 12, letterSpacing: "0.06em" }}>
-                  No spam. Early access only. Cancel anytime.
-                </p>
-              </>
-            ) : (
-              <div style={{
-                padding: "20px 24px", borderRadius: 8,
-                border: "1px solid rgba(212,175,55,0.3)",
-                background: "rgba(212,175,55,0.05)",
-                animation: "fadeIn 0.5s ease",
-              }}>
-                <div style={{ fontSize: 24, marginBottom: 8 }}>✨</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 20, color: "#d4af37", fontWeight: 600 }}>
-                  You're on the list.
-                </div>
-                <div style={{ fontSize: 13, color: "#5a5340", marginTop: 6 }}>
-                  We'll reach out when your access is ready.
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* Stats Bar */}
-        <div style={{
-          borderTop: "1px solid rgba(212,175,55,0.08)",
-          borderBottom: "1px solid rgba(212,175,55,0.08)",
-          display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-          maxWidth: 640, margin: "0 auto 60px", width: "100%",
-          animation: "fadeUp 0.8s ease 0.8s both",
-        }}>
-          <StatCard number="10K+" label="Wallets Tracked" delay="0.85s" />
-          <div style={{ borderLeft: "1px solid rgba(212,175,55,0.08)", borderRight: "1px solid rgba(212,175,55,0.08)" }}>
-            <StatCard number="< 2s" label="Alert Speed" delay="0.9s" />
-          </div>
-          <StatCard number="94%" label="Signal Accuracy" delay="0.95s" />
+        {/* Badge */}
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, border: "1px solid rgba(137,243,54,0.2)", background: "rgba(137,243,54,0.04)", fontSize: 12, color: "#89F336", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginBottom: 36, animation: "fadeUp 0.6s ease 0.1s both" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#89F336", display: "inline-block", animation: "pulseGreen 2s ease infinite" }} />
+          Now accepting early access
         </div>
 
-        {/* Footer */}
-        <footer style={{
-          textAlign: "center", padding: "24px",
-          borderTop: "1px solid rgba(212,175,55,0.06)",
-          animation: "fadeIn 1.2s ease 1s both",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{
-              fontFamily: "'Cormorant Garamond', serif",
-              fontSize: 14, color: "#3a3020", letterSpacing: "0.12em", textTransform: "uppercase",
-            }}>Auracle</span>
-            <span style={{ color: "#2a2010", fontSize: 11 }}>·</span>
-            <span style={{ fontSize: 11, color: "#2a2010" }}>Crypto Intelligence, Redefined</span>
-          </div>
-          <div style={{ fontSize: 11, color: "#2a2010", letterSpacing: "0.05em" }}>
-            © 2026 Auracle. All rights reserved.
-          </div>
-        </footer>
+        {/* Headline */}
+        <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: "clamp(40px, 7vw, 82px)", fontWeight: 800, lineHeight: 1.06, letterSpacing: "-0.03em", maxWidth: 860, marginBottom: 24, animation: "fadeUp 0.7s ease 0.2s both" }}>
+          Track Smart Money<br />
+          <span style={{ color: "#89F336", textShadow: "0 0 40px rgba(137,243,54,0.3)" }}>Before It Moves Markets.</span>
+        </h1>
 
-      </div>
-    </>
-  );
-              }
-              
+        {/* Sub */}
+        <p style={{ fontSize: "clamp(16px, 2vw, 19px)", color: "#64748b", maxWidth: 520, lineHeight: 1.7, marginBottom: 48, animation: "fadeUp 0.7s ease 0.3s both" }}>
+          Auracle monitors elite wallets, detects early signals, and turns raw blockchain data into actionable intelligence — in real time.
+        </p>
+
+        {/* CTAs */}
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginBottom: 64, animation: "fadeUp 0.7s ease 0.4s both" }}>
+          <PrimaryBtn onClick={() => scrollTo("cta")}>Start Tracking →</PrimaryBtn>
+          <OutlineBtn onClick={() => scrollTo("how-it-works")}>See How It Works</OutlineBtn>
+        </div>
+
+        {/* Mock terminal card */}
+        <div style={{ animation: "fadeUp 0.8s ease 0.5s both, float 5s ease-in-out infinite", width: "100%", maxWidth: 640 }}>
+          <div style={{ borderRadius: 16, border: "1px solid rgba(137,243,54,0.12)", background: "rgba(2,6,23,0.85)", backdropFilter: "blur(20px)", overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(137,243,54,0.05)" }}>
+            {/* Terminal bar */}
+            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.02)" }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#f87171", opacity: 0.7 }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#facc15", opacity: 0.7 }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#89F336", opacity: 0.7 }} />
+              <span style={{ marginLeft: 8, fontSize: 11, color: "#475569", fontFamily: "'DM Mono', monospace" }}>auracle — live intelligence feed</span>
+            </div>
+            {/* Rows */}
+            {[
+              { wallet: "0x3b4c…a1f2", action: "Accumulated 12,000 ARB", time: "just now", delta: "+18.3%", up: true },
+              { wallet: "0x9fa1…2b3c", action: "Opened 500 ETH long position", time: "2m ago", delta: "+2.1%", up: true },
+              { wallet: "0x1a7e…9c0d", action: "Exiting PEPE — 40M tokens sold", time: "5m ago", delta: "-6.4%", up: false },
+              { wallet: "0xc3b2…7e8f", action: "BTC whale moved to cold storage", time: "9m ago", delta: "+0.8%", up: true },
+            ].map((row, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 20px", borderBottom: "1px solid rgba(255,255,255,0.03)", gap: 12 }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center", minWidth: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: row.up ? "#89F336" : "#f87171", flexShrink: 0, boxShadow: row.up ? "0 0 8px rgba(137,243,54,0.6)" : "0 0 8px rgba(248,113,113,0.6)" }} />
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#89F336", flexShrink: 0 }}>{row.wallet}</span>
+                  <span style={{ fontSize: 13, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.action}</span>
+                </div>
+                <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: row.up ? "#89F336" : "#f87171" }}>{row.delta}</span>
+                  <span style={{ fontSize: 11, color: "#334155" }}>{row.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TICKER ── */}
+      <div style={{ position: "relative", zIndex: 1 }}><Ticker /></div>
+
+      {/* ── STATS ── */}
+      <section id="stats" style={{ position: "relative", zIndex: 1, padding: "80px 24px" }}>
+        <div style={{ maxW
