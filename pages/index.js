@@ -1,399 +1,791 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-/* ─── ANIMATED GRID + PARTICLE BACKGROUND ─── */
-function Background() {
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:    #07090d;
+    --surface:  #0c0f14;
+    --glass:    rgba(255,255,255,0.03);
+    --border:   rgba(255,255,255,0.07);
+    --green:    #00d084;
+    --green-dim:#007a4d;
+    --green-glow: rgba(0,208,132,0.18);
+    --green-glow-sm: rgba(0,208,132,0.08);
+    --text:     #e8ebe8;
+    --muted:    #7a8a80;
+    --mono:     'DM Mono', monospace;
+    --display:  'Syne', sans-serif;
+    --body:     'DM Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: var(--body);
+    font-weight: 300;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 48px;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.4s, background 0.4s, backdrop-filter 0.4s;
+  }
+  nav.scrolled {
+    background: rgba(7,9,13,0.82);
+    border-color: var(--border);
+    backdrop-filter: blur(20px);
+  }
+
+  .nav-logo {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    color: #fff;
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--green); }
+
+  .nav-links {
+    display: flex;
+    gap: 36px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: var(--body);
+    font-size: 0.82rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  .nav-cta {
+    font-family: var(--body);
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--black);
+    background: var(--green);
+    border: none;
+    padding: 9px 22px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: box-shadow 0.25s, transform 0.2s;
+  }
+  .nav-cta:hover {
+    box-shadow: 0 0 22px var(--green-glow), 0 0 6px rgba(0,208,132,0.4);
+    transform: translateY(-1px);
+  }
+
+  section { position: relative; z-index: 1; }
+
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 140px 48px 100px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 30px;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 28px; height: 1px;
+    background: var(--green);
+  }
+
+  .hero-headline {
+    font-family: var(--display);
+    font-size: clamp(2.8rem, 6vw, 5.2rem);
+    font-weight: 800;
+    line-height: 1.04;
+    letter-spacing: -0.03em;
+    color: #fff;
+    max-width: 820px;
+    margin-bottom: 28px;
+    opacity: 0;
+    transform: translateY(18px);
+    animation: fadeUp 0.9s 0.35s forwards;
+  }
+  .hero-headline em {
+    font-style: normal;
+    color: var(--green);
+    position: relative;
+  }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    font-weight: 300;
+    color: var(--muted);
+    max-width: 500px;
+    line-height: 1.65;
+    margin-bottom: 44px;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: fadeUp 0.9s 0.5s forwards;
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    opacity: 0;
+    transform: translateY(12px);
+    animation: fadeUp 0.9s 0.65s forwards;
+  }
+
+  .btn-primary {
+    font-family: var(--body);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--black);
+    background: var(--green);
+    border: none;
+    padding: 14px 32px;
+    border-radius: 7px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: box-shadow 0.3s, transform 0.2s;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 32px rgba(0,208,132,0.45), 0 0 8px rgba(0,208,132,0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    font-family: var(--body);
+    font-size: 0.9rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 14px 30px;
+    border-radius: 7px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.25s, color 0.25s;
+  }
+  .btn-secondary:hover {
+    border-color: rgba(255,255,255,0.18);
+    color: var(--text);
+  }
+
+  .hero-terminal {
+    margin-top: 80px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(12,15,20,0.85);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    max-width: 760px;
+    opacity: 0;
+    transform: translateY(24px);
+    animation: fadeUp 1s 0.85s forwards;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .terminal-title {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .terminal-body { padding: 22px 22px 18px; }
+  .t-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+  }
+  .t-row:last-child { border-bottom: none; }
+  .t-label { color: var(--muted); width: 130px; flex-shrink: 0; }
+  .t-val { color: var(--text); }
+  .t-val.green { color: var(--green); }
+  .t-val.pulse {
+    animation: pulse-text 2.4s ease-in-out infinite;
+  }
+  .t-badge {
+    margin-left: auto;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: var(--green-glow);
+    color: var(--green);
+    border: 1px solid rgba(0,208,132,0.2);
+  }
+
+  #stats {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+    background: rgba(12,15,20,0.6);
+  }
+  .stats-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .stat-item {
+    padding: 42px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; padding-left: 48px; }
+  .stat-item:nth-child(2) { padding-left: 48px; }
+  .stat-num {
+    font-family: var(--display);
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .stat-num span { color: var(--green); }
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  #features {
+    padding: 120px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 20px; height: 1px;
+    background: var(--green);
+  }
+
+  .section-heading {
+    font-family: var(--display);
+    font-size: clamp(1.9rem, 3.5vw, 2.9rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #fff;
+    line-height: 1.1;
+    max-width: 540px;
+    margin-bottom: 70px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .feature-card {
+    background: var(--surface);
+    padding: 42px 40px;
+    transition: background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at top left, var(--green-glow-sm) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-card:hover { background: #0f1318; }
+
+  .feature-icon {
+    width: 42px; height: 42px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(0,208,132,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+  .feature-icon svg {
+    width: 18px; height: 18px;
+    stroke: var(--green);
+    fill: none;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .feature-title {
+    font-family: var(--display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .feature-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  #how {
+    padding: 120px 48px;
+    border-top: 1px solid var(--border);
+  }
+  .how-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    position: relative;
+    margin-top: 70px;
+  }
+  .steps-grid::before {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: calc(16.66% + 20px);
+    right: calc(16.66% + 20px);
+    height: 1px;
+    background: linear-gradient(90deg, var(--green-dim), var(--green-dim));
+    opacity: 0.4;
+  }
+
+  .step {
+    padding: 0 36px 0 0;
+    position: relative;
+  }
+  .step:last-child { padding-right: 0; }
+
+  .step-num {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--green);
+    letter-spacing: 0.04em;
+    margin-bottom: 28px;
+    position: relative;
+    z-index: 1;
+  }
+  .step-title {
+    font-family: var(--display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .step-desc {
+    font-size: 0.86rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  #cta {
+    padding: 140px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  #cta::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,208,132,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 620px;
+    margin: 0 auto;
+  }
+  .cta-heading {
+    font-family: var(--display);
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    color: #fff;
+    line-height: 1.06;
+    margin-bottom: 22px;
+  }
+  .cta-heading em {
+    font-style: normal;
+    color: var(--green);
+  }
+  .cta-sub {
+    font-size: 0.95rem;
+    color: var(--muted);
+    max-width: 400px;
+    margin: 0 auto 40px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+  .cta-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .footer-brand {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 1rem;
+    color: #fff;
+  }
+  .footer-brand span { color: var(--green); }
+
+  .footer-links {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+  }
+  .footer-links a {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    font-weight: 300;
+  }
+  .footer-links a:hover { color: var(--text); }
+
+  .footer-copy {
+    font-size: 0.72rem;
+    color: #3d4a40;
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse-text {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .cursor {
+    display: inline-block;
+    width: 6px; height: 0.9em;
+    background: var(--green);
+    margin-left: 3px;
+    vertical-align: middle;
+    animation: blink 1.1s step-start infinite;
+  }
+
+  @media (max-width: 900px) {
+    nav { padding: 18px 24px; }
+    .nav-links { display: none; }
+    #hero { padding: 120px 24px 80px; }
+    .stats-inner { padding: 0 24px; }
+    .stat-item:nth-child(2) { padding-left: 24px; }
+    .stat-item:last-child { padding-left: 24px; }
+    #features { padding: 80px 24px; }
+    .features-grid { grid-template-columns: 1fr; }
+    #how { padding: 80px 24px; }
+    .steps-grid {
+      grid-template-columns: 1fr;
+      gap: 40px;
+    }
+    .steps-grid::before { display: none; }
+    #cta { padding: 100px 24px; }
+    footer { padding: 32px 24px; flex-direction: column; align-items: flex-start; }
+  }
+  @media (max-width: 600px) {
+    .stats-inner { grid-template-columns: 1fr; }
+    .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding: 30px 0 !important; }
+    .stat-item:last-child { border-bottom: none; }
+    .hero-actions { flex-direction: column; align-items: flex-start; }
+    .cta-actions { flex-direction: column; }
+  }
+`;
+
+export default function App() {
   const canvasRef = useRef(null);
+  const navRef = useRef(null);
+
+  // Canvas particle animation
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     let animId;
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
     resize();
     window.addEventListener("resize", resize);
 
-    const particles = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      r: Math.random() * 1.5 + 0.3,
-      alpha: Math.random() * 0.5 + 0.1,
+    const COUNT = 55;
+    const particles = Array.from({ length: COUNT }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.18,
+      vy: (Math.random() - 0.5) * 0.18,
+      r: Math.random() * 1.4 + 0.4,
+      a: Math.random() * 0.35 + 0.05,
     }));
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Grid
-      ctx.strokeStyle = "rgba(137,243,54,0.04)";
-      ctx.lineWidth = 1;
-      const gs = 80;
-      for (let x = 0; x < canvas.width; x += gs) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-      for (let y = 0; y < canvas.height; y += gs) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
-
-      // Particles
-      particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0;
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(137,243,54,${p.alpha})`;
+        ctx.fillStyle = `rgba(0,208,132,${p.a})`;
         ctx.fill();
       });
-
-      // Connect nearby particles
-      for (let i = 0; i < particles.length; i++) {
+      particles.forEach((a, i) => {
         for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
+          const b = particles[j];
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          if (d < 130) {
             ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(137,243,54,${0.06 * (1 - dist / 120)})`;
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(0,208,132,${0.06 * (1 - d / 130)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
         }
-      }
-
+      });
       animId = requestAnimationFrame(draw);
     };
     draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
-  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />;
-}
-
-/* ─── SCROLL FADE HOOK ─── */
-function useFadeIn(threshold = 0.15) {
-  const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
+  // Nav scroll effect
   useEffect(() => {
-    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true); }, { threshold });
-    if (ref.current) obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, visible];
-}
-
-function FadeIn({ children, delay = "0s", style = {} }) {
-  const [ref, visible] = useFadeIn();
-  return (
-    <div ref={ref} style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(28px)",
-      transition: `opacity 0.7s ease ${delay}, transform 0.7s ease ${delay}`,
-      ...style,
-    }}>
-      {children}
-    </div>
-  );
-}
-
-/* ─── LOGO ─── */
-function Logo({ size = 32 }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-        <circle cx="20" cy="20" r="18" stroke="#89F336" strokeWidth="1.5" opacity="0.4" />
-        <circle cx="20" cy="20" r="12" stroke="#89F336" strokeWidth="1" opacity="0.6" />
-        <ellipse cx="20" cy="20" rx="18" ry="7" stroke="#89F336" strokeWidth="1" opacity="0.3" />
-        <circle cx="20" cy="20" r="4" fill="#89F336" opacity="0.9" />
-        <circle cx="21.5" cy="18.5" r="1.2" fill="white" opacity="0.7" />
-      </svg>
-      <span style={{
-        fontSize: size * 0.6, fontWeight: 800, letterSpacing: "-0.01em",
-        fontFamily: "'Syne', sans-serif", color: "#f0f4f0",
-      }}>
-        Aur<span style={{ color: "#89F336" }}>acle</span>
-      </span>
-    </div>
-  );
-}
-
-/* ─── LIVE TICKER ─── */
-const TICKERS = [
-  { label: "ETH Whale Alert", sub: "5,200 ETH → Binance", delta: "-4.1%", up: false },
-  { label: "ARB Smart Money", sub: "Accumulating quietly", delta: "+18.3%", up: true },
-  { label: "PEPE Trend", sub: "Volume spike detected", delta: "+41%", up: true },
-  { label: "BTC Wallet #9f2a", sub: "New 500 BTC position", delta: "+2.8%", up: true },
-  { label: "SOL Sell-off", sub: "3 whales exiting", delta: "-9.2%", up: false },
-];
-
-function Ticker() {
-  return (
-    <div style={{ overflow: "hidden", borderTop: "1px solid rgba(137,243,54,0.08)", borderBottom: "1px solid rgba(137,243,54,0.08)", padding: "10px 0", background: "rgba(137,243,54,0.02)" }}>
-      <div style={{ display: "flex", gap: 48, animation: "scrollTicker 22s linear infinite", width: "max-content" }}>
-        {[...TICKERS, ...TICKERS].map((t, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, whiteSpace: "nowrap" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: t.up ? "#89F336" : "#f87171", display: "inline-block" }} />
-            <span style={{ fontSize: 12, color: "#94a3b8", fontFamily: "'DM Mono', monospace" }}>{t.label}</span>
-            <span style={{ fontSize: 12, color: "#475569" }}>·</span>
-            <span style={{ fontSize: 12, color: "#64748b" }}>{t.sub}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: t.up ? "#89F336" : "#f87171", fontFamily: "'DM Mono', monospace" }}>{t.delta}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── FEATURE CARD ─── */
-function FeatureCard({ icon, title, desc, delay }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <FadeIn delay={delay}>
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          padding: "28px 26px",
-          borderRadius: 16,
-          border: `1px solid ${hovered ? "rgba(137,243,54,0.3)" : "rgba(255,255,255,0.06)"}`,
-          background: hovered ? "rgba(137,243,54,0.04)" : "rgba(255,255,255,0.02)",
-          backdropFilter: "blur(12px)",
-          transition: "all 0.3s ease",
-          boxShadow: hovered ? "0 0 30px rgba(137,243,54,0.06)" : "none",
-          cursor: "default",
-        }}
-      >
-        <div style={{
-          width: 44, height: 44, borderRadius: 12,
-          background: "rgba(137,243,54,0.08)",
-          border: "1px solid rgba(137,243,54,0.15)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 20, marginBottom: 18,
-          transition: "background 0.3s",
-          ...(hovered ? { background: "rgba(137,243,54,0.15)" } : {}),
-        }}>{icon}</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f4f0", marginBottom: 8, fontFamily: "'Syne', sans-serif" }}>{title}</div>
-        <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.65 }}>{desc}</div>
-      </div>
-    </FadeIn>
-  );
-}
-
-/* ─── STEP CARD ─── */
-function StepCard({ number, title, desc, delay }) {
-  return (
-    <FadeIn delay={delay}>
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-          border: "1px solid rgba(137,243,54,0.4)",
-          background: "rgba(137,243,54,0.06)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 700, color: "#89F336",
-        }}>{number}</div>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#f0f4f0", marginBottom: 6, fontFamily: "'Syne', sans-serif" }}>{title}</div>
-          <div style={{ fontSize: 14, color: "#64748b", lineHeight: 1.6 }}>{desc}</div>
-        </div>
-      </div>
-    </FadeIn>
-  );
-}
-
-/* ─── STAT ─── */
-function Stat({ value, label, delay }) {
-  return (
-    <FadeIn delay={delay} style={{ textAlign: "center" }}>
-      <div style={{
-        fontSize: "clamp(36px, 5vw, 52px)", fontWeight: 800,
-        fontFamily: "'Syne', sans-serif", color: "#89F336",
-        letterSpacing: "-0.03em", lineHeight: 1,
-      }}>{value}</div>
-      <div style={{ fontSize: 13, color: "#475569", marginTop: 8, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 600 }}>{label}</div>
-    </FadeIn>
-  );
-}
-
-/* ─── BUTTONS ─── */
-function PrimaryBtn({ children, onClick }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button onClick={onClick}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        background: hov ? "#9dff4a" : "#89F336",
-        color: "#020617", border: "none", borderRadius: 10,
-        padding: "14px 28px", fontSize: 15, fontWeight: 800,
-        cursor: "pointer", fontFamily: "'Syne', sans-serif",
-        letterSpacing: "0.01em",
-        boxShadow: hov ? "0 0 30px rgba(137,243,54,0.45), 0 0 60px rgba(137,243,54,0.15)" : "0 0 20px rgba(137,243,54,0.2)",
-        transition: "all 0.2s ease",
-        transform: hov ? "translateY(-1px)" : "none",
-      }}>{children}</button>
-  );
-}
-
-function OutlineBtn({ children, onClick }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button onClick={onClick}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{
-        background: "transparent",
-        color: hov ? "#89F336" : "#94a3b8",
-        border: `1px solid ${hov ? "rgba(137,243,54,0.5)" : "rgba(255,255,255,0.12)"}`,
-        borderRadius: 10, padding: "14px 28px", fontSize: 15, fontWeight: 600,
-        cursor: "pointer", fontFamily: "'Syne', sans-serif",
-        transition: "all 0.2s ease",
-      }}>{children}</button>
-  );
-}
-
-/* ─── EMAIL CAPTURE ─── */
-function EmailCapture() {
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
-  const [focused, setFocused] = useState(false);
-  return done ? (
-    <div style={{
-      padding: "16px 28px", borderRadius: 12,
-      border: "1px solid rgba(137,243,54,0.3)",
-      background: "rgba(137,243,54,0.06)",
-      color: "#89F336", fontWeight: 700, fontSize: 15,
-      fontFamily: "'Syne', sans-serif", textAlign: "center",
-    }}>✓ You're on the list. We'll reach out soon.</div>
-  ) : (
-    <div style={{ display: "flex", gap: 0, maxWidth: 460, width: "100%", borderRadius: 10, overflow: "hidden", border: `1px solid ${focused ? "rgba(137,243,54,0.4)" : "rgba(255,255,255,0.08)"}`, transition: "border-color 0.2s", boxShadow: focused ? "0 0 0 3px rgba(137,243,54,0.06)" : "none" }}>
-      <input
-        type="email" placeholder="Enter your email"
-        value={email} onChange={e => setEmail(e.target.value)}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        onKeyDown={e => e.key === "Enter" && email && setDone(true)}
-        style={{ flex: 1, background: "rgba(2,6,23,0.8)", border: "none", padding: "14px 18px", color: "#f0f4f0", fontSize: 14, outline: "none", fontFamily: "'DM Mono', monospace" }}
-      />
-      <button onClick={() => email && setDone(true)} style={{ background: "#89F336", color: "#020617", border: "none", padding: "14px 22px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "'Syne', sans-serif", whiteSpace: "nowrap" }}>
-        Get Access →
-      </button>
-    </div>
-  );
-}
-
-/* ─── MAIN EXPORT ─── */
-export default function AuracleLanding() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const nav = navRef.current;
+    const onScroll = () => {
+      if (window.scrollY > 40) nav.classList.add("scrolled");
+      else nav.classList.remove("scrolled");
+    };
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  // Scroll reveal
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("visible");
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body { background: #020617; color: #f0f4f0; font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #020617; } ::-webkit-scrollbar-thumb { background: rgba(137,243,54,0.2); border-radius: 99px; }
-        @keyframes scrollTicker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes pulseGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(137,243,54,0.4); } 50% { box-shadow: 0 0 0 10px rgba(137,243,54,0); } }
-        @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-        @keyframes glowPulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
-      `}</style>
+      <style>{styles}</style>
 
-      <Background />
+      <canvas id="canvas" ref={canvasRef} />
 
-      {/* ── NAV ── */}
-      <nav style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-        padding: "0 32px",
-        height: 68,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: scrolled ? "rgba(2,6,23,0.9)" : "transparent",
-        backdropFilter: scrolled ? "blur(20px)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(137,243,54,0.08)" : "1px solid transparent",
-        transition: "all 0.3s ease",
-      }}>
-        <Logo />
-        <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-          {["Features", "How It Works", "Stats"].map(item => (
-            <button key={item} onClick={() => scrollTo(item.toLowerCase().replace(/ /g, "-"))}
-              style={{ background: "none", border: "none", color: "#64748b", fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, transition: "color 0.2s" }}
-              onMouseEnter={e => e.target.style.color = "#f0f4f0"}
-              onMouseLeave={e => e.target.style.color = "#64748b"}
-            >{item}</button>
-          ))}
-          <PrimaryBtn onClick={() => scrollTo("cta")}>Get Early Access</PrimaryBtn>
-        </div>
+      {/* NAV */}
+      <nav id="nav" ref={navRef}>
+        <a href="#" className="nav-logo">
+          Aur<span>a</span>cle
+        </a>
+        <ul className="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#cta">Pricing</a></li>
+        </ul>
+        <a href="#cta" className="nav-cta">Get Early Access</a>
       </nav>
 
-      {/* ── HERO ── */}
-      <section style={{ position: "relative", zIndex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "120px 24px 60px", textAlign: "center" }}>
-
-        {/* Glow orb behind headline */}
-        <div style={{ position: "absolute", top: "35%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 300, borderRadius: "50%", background: "radial-gradient(ellipse, rgba(137,243,54,0.07) 0%, transparent 70%)", pointerEvents: "none", animation: "glowPulse 4s ease-in-out infinite" }} />
-
-        {/* Badge */}
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 16px", borderRadius: 999, border: "1px solid rgba(137,243,54,0.2)", background: "rgba(137,243,54,0.04)", fontSize: 12, color: "#89F336", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600, marginBottom: 36, animation: "fadeUp 0.6s ease 0.1s both" }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#89F336", display: "inline-block", animation: "pulseGreen 2s ease infinite" }} />
-          Now accepting early access
-        </div>
-
-        {/* Headline */}
-        <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: "clamp(40px, 7vw, 82px)", fontWeight: 800, lineHeight: 1.06, letterSpacing: "-0.03em", maxWidth: 860, marginBottom: 24, animation: "fadeUp 0.7s ease 0.2s both" }}>
-          Track Smart Money<br />
-          <span style={{ color: "#89F336", textShadow: "0 0 40px rgba(137,243,54,0.3)" }}>Before It Moves Markets.</span>
-        </h1>
-
-        {/* Sub */}
-        <p style={{ fontSize: "clamp(16px, 2vw, 19px)", color: "#64748b", maxWidth: 520, lineHeight: 1.7, marginBottom: 48, animation: "fadeUp 0.7s ease 0.3s both" }}>
-          Auracle monitors elite wallets, detects early signals, and turns raw blockchain data into actionable intelligence — in real time.
-        </p>
-
-        {/* CTAs */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center", marginBottom: 64, animation: "fadeUp 0.7s ease 0.4s both" }}>
-          <PrimaryBtn onClick={() => scrollTo("cta")}>Start Tracking →</PrimaryBtn>
-          <OutlineBtn onClick={() => scrollTo("how-it-works")}>See How It Works</OutlineBtn>
-        </div>
-
-        {/* Mock terminal card */}
-        <div style={{ animation: "fadeUp 0.8s ease 0.5s both, float 5s ease-in-out infinite", width: "100%", maxWidth: 640 }}>
-          <div style={{ borderRadius: 16, border: "1px solid rgba(137,243,54,0.12)", background: "rgba(2,6,23,0.85)", backdropFilter: "blur(20px)", overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(137,243,54,0.05)" }}>
-            {/* Terminal bar */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.02)" }}>
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#f87171", opacity: 0.7 }} />
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#facc15", opacity: 0.7 }} />
-              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#89F336", opacity: 0.7 }} />
-              <span style={{ marginLeft: 8, fontSize: 11, color: "#475569", fontFamily: "'DM Mono', monospace" }}>auracle — live intelligence feed</span>
-            </div>
-            {/* Rows */}
-            {[
-              { wallet: "0x3b4c…a1f2", action: "Accumulated 12,000 ARB", time: "just now", delta: "+18.3%", up: true },
-              { wallet: "0x9fa1…2b3c", action: "Opened 500 ETH long position", time: "2m ago", delta: "+2.1%", up: true },
-              { wallet: "0x1a7e…9c0d", action: "Exiting PEPE — 40M tokens sold", time: "5m ago", delta: "-6.4%", up: false },
-              { wallet: "0xc3b2…7e8f", action: "BTC whale moved to cold storage", time: "9m ago", delta: "+0.8%", up: true },
-            ].map((row, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 20px", borderBottom: "1px solid rgba(255,255,255,0.03)", gap: 12 }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "center", minWidth: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: row.up ? "#89F336" : "#f87171", flexShrink: 0, boxShadow: row.up ? "0 0 8px rgba(137,243,54,0.6)" : "0 0 8px rgba(248,113,113,0.6)" }} />
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: "#89F336", flexShrink: 0 }}>{row.wallet}</span>
-                  <span style={{ fontSize: 13, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.action}</span>
-                </div>
-                <div style={{ display: "flex", gap: 16, alignItems: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: row.up ? "#89F336" : "#f87171" }}>{row.delta}</span>
-                  <span style={{ fontSize: 11, color: "#334155" }}>{row.time}</span>
-                </div>
-              </div>
-            ))}
+      {/* HERO */}
+      <section style={{ position: "relative", zIndex: 1 }}>
+        <div id="hero">
+          <div className="hero-eyebrow">Crypto Intelligence Terminal</div>
+          <h1 className="hero-headline">
+            Track <em>smart money</em>
+            <br />
+            before it moves markets.
+          </h1>
+          <p className="hero-sub">
+            Auracle surfaces what top wallets are doing in real time — so you
+            stop reacting to the market and start moving with it.
+          </p>
+          <div className="hero-actions">
+            <a href="#cta" className="btn-primary">Start Tracking</a>
+            <a href="#how" className="btn-secondary">View Demo</a>
           </div>
-        </div>
-      </section>
 
-      {/* ── TICKER ── */}
-      <div style={{ position: "relative", zIndex: 1 }}><Ticker /></div>
-
-      {/* ── STATS ── */}
-      <section id="stats" style={{ position: "relative", zIndex: 1, padding: "80px 24px" }}>
-        <div style={{ maxW
+          {/* Terminal mockup */}
+          <div className="hero-terminal">
+            <div className="terminal-bar">
+              <span className="dot dot-r" />
+              <span className="dot dot-y" />
+              <span className="dot dot-g" />
+              <span className="terminal-title">AURACLE / LIVE FEED</span>
+            </div>
+            <div className="terminal-body">
+              <div className="t-row">
+                <span className="t-label">wallet_id</span>
+                <span className="t-val">0x71C...9aF3</span>
+                <span className="t-badge">WHALE</span>
+              </div>
+              <div className="t-row">
+                <span className="t-label">action</span>
+                <span className="t-val green">
+                  ACCUMULATE — $ARB &nbsp;+148,200 tokens
+                </span>
+              </div>
+              <div className="t-row">
+                <span className="t-label">chain</span>
+                <span className="t-val">Arbitrum One</span>
+              </div>
+              <div className="t-row">
+                <span className="t-label">signal_age</span>
+                <span className="t-val green pulse">2.1s ago</span>
+              </div>
+              <div className="t-row">
+                <span className="t-label">ai_summary</span>
+                <span
+                  className="t-val"
+                  style={{ fontStyle: "italic", color: "#a0b0a5" }}
+                >
+                  Large position build across 3 wallets. Pattern matches
+                  pre-rally behavior from Q1 
