@@ -788,4 +788,184 @@ export default function App() {
                   style={{ fontStyle: "italic", color: "#a0b0a5" }}
                 >
                   Large position build across 3 wallets. Pattern matches
-                  pre-rally behavior from Q1 
+                  pre-rally behavior from Q1 2025.
+                  <span className="cursor" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* STATS */}
+      <section id="stats">
+        <div className="stats-inner">
+          <div className="stat-item reveal">
+            <div className="stat-num">
+              456<span>+</span>
+            </div>
+            <div className="stat-label">Smart money wallets tracked</div>
+          </div>
+          <div className="stat-item reveal">
+            <div className="stat-num">
+              &lt;3.4<span>s</span>
+            </div>
+            <div className="stat-label">Average alert latency</div>
+          </div>
+          <div className="stat-item reveal">
+            <div className="stat-num">
+              87<span>%</span>
+            </div>
+            <div className="stat-label">Signal accuracy rate</div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="features">
+        <div className="section-label">Core intelligence</div>
+        <h2 className="section-heading reveal">
+          The edge that institutional traders already have.
+        </h2>
+        <div className="features-grid">
+          <div className="feature-card reveal">
+            <div className="feature-icon">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
+              </svg>
+            </div>
+            <div className="feature-title">
+              See what whales buy before price reacts
+            </div>
+            <div className="feature-desc">
+              Monitor the wallets with a proven track record. When they
+              accumulate, you know about it — not 12 hours later when it's
+              trending on crypto Twitter.
+            </div>
+          </div>
+          <div className="feature-card reveal">
+            <div className="feature-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+            </div>
+            <div className="feature-title">
+              Real-time alerts when positions shift
+            </div>
+            <div className="feature-desc">
+              Whale entering or exiting? You get notified in under 3.4 seconds.
+              Configured by chain, token, and wallet tag — no noise, only what
+              matters to you.
+            </div>
+          </div>
+          <div className="feature-card reveal">
+            <div className="feature-icon">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M9 21V9" />
+              </svg>
+            </div>
+            <div className="feature-title">
+              AI that reads wallet behavior for you
+            </div>
+            <div className="feature-desc">
+              Every significant on-chain event is summarized in plain language.
+              Auracle's AI identifies patterns, flags anomalies, and tells you
+              what a wallet's history suggests about its next move.
+            </div>
+          </div>
+          <div className="feature-card reveal">
+            <div className="feature-icon">
+              <svg viewBox="0 0 24 24">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+            </div>
+            <div className="feature-title">
+              Cross-chain coverage, unified view
+            </div>
+            <div className="feature-desc">
+              Ethereum, Arbitrum, Base, Solana — all in one feed. Filter by
+              chain or watch the full picture. Smart money doesn't stay on one
+              network, and neither does Auracle.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section id="how">
+        <div className="how-inner">
+          <div className="section-label">How it works</div>
+          <h2 className="section-heading reveal">
+            From on-chain event to your screen in seconds.
+          </h2>
+          <div className="steps-grid">
+            <div className="step reveal">
+              <div className="step-num">01</div>
+              <div className="step-title">We index the wallets that matter</div>
+              <div className="step-desc">
+                Auracle maintains a curated list of wallets with proven
+                alpha-generating histories — VCs, protocols, early whales, and
+                known smart traders across every major chain.
+              </div>
+            </div>
+            <div className="step reveal">
+              <div className="step-num">02</div>
+              <div className="step-title">AI processes every transaction</div>
+              <div className="step-desc">
+                Each on-chain move is classified, contextualized, and enriched
+                with historical pattern data. You get the signal, not the raw
+                noise of mempool data.
+              </div>
+            </div>
+            <div className="step reveal">
+              <div className="step-num">03</div>
+              <div className="step-title">
+                You act before the market catches on
+              </div>
+              <div className="step-desc">
+                Alerts hit your dashboard, Telegram, or webhook before the
+                price moves. You decide what to do with the information — we
+                just make sure you have it first.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section id="cta">
+        <div className="cta-inner">
+          <div className="section-label">Early access</div>
+          <h2 className="cta-heading">
+            Stop being <em>last</em> to know.
+          </h2>
+          <p className="cta-sub">
+            Join the waitlist and get 30 days of Pro access free when we
+            launch. No credit card required.
+          </p>
+          <div className="cta-actions">
+            <a href="#" className="btn-primary">Get Early Access</a>
+            <a href="#features" className="btn-secondary">Learn More</a>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer>
+        <div className="footer-brand">
+          Aur<span>a</span>cle
+        </div>
+        <ul className="footer-links">
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Twitter</a></li>
+        </ul>
+        <div className="footer-copy">© 2025 Auracle Labs Inc.</div>
+      </footer>
+    </>
+  );
+}
